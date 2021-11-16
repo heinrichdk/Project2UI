@@ -23,4 +23,13 @@ public class UserComponent
            
         return response;
     }
+    
+    public async Task<IRestResponse<Project2Response<SignInResponse>>> SignUp(SignUpRequest signUpRequest )
+    {
+        var request = new RestRequest("user/sign-up", Method.POST).AddJsonBody(signUpRequest);
+
+        var response = await _client.ExecuteAsync<Project2Response<SignInResponse>>(request);
+           
+        return response;
+    }
 }

@@ -1,0 +1,101 @@
+﻿@inject NavigationManager _navigationManager
+@inject UserService _userService
+@inject BrowserStorageService _browserStorageService
+@page "/SignUp"
+@using Project2UI.Services
+@using Project2UI.Models
+@if (HasError)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled">@ErrorMessage</MudAlert>
+}
+
+
+<div>
+
+    <div style="display: flex;justify-content: center;align-items: center; margin-top: 10mm">
+        <h1 >
+            Sign Up
+        </h1>
+    </div>
+    <div style="display: flex;justify-content: center;align-items: center; margin-top: 5mm ">
+        <input type="text" placeholder="Enter Name" @bind="Name">
+    </div >
+    <div style="display: flex;justify-content: center;align-items: center; margin-top: 5mm ">
+        <input type="text" placeholder="Enter Surname" @bind="Surname">
+    </div>
+    <div style="display: flex;justify-content: center;align-items: center; margin-top: 5mm ">
+        <input type="text" placeholder="Enter Username" @bind="Username">
+    </div >
+    <div style="display: flex;justify-content: center;align-items: center; margin-top: 5mm ">
+        <input type="password" placeholder="Enter Password" @bind="Password">
+    </div>
+    <div style="display: flex;justify-content: center;align-items: center; margin-top: 5mm ">
+        <input type="password" placeholder="Confirm Password" @onkeydown="@Enter" @bind="ConfirmPassword">
+    </div>
+    <div style="display: flex;justify-content: center;align-items: center; margin-top:5mm ">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="SignUpAsync">Sign Up</MudButton>
+    </div>
+    <div style="display: flex;justify-content: center;align-items: center; margin-top: 5mm ">
+        <MudButton Variant="Variant.Filled" @onclick="CancelAsync">Cancel</MudButton>
+    </div>
+
+
+</div>
+
+
+@code {
+    string Name { get; set; }
+    string Surname { get; set; }
+    string Username { get; set; }
+    string Password { get; set; }
+    string ConfirmPassword { get; set; }
+    bool HasError { get; set; }
+    string ErrorMessage { get; set; }
+
+    public void Enter(KeyboardEventArgs e)
+    {
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+        {
+            SignUpAsync();
+        }
+    }
+
+
+    public async Task CancelAsync()
+    {
+        _navigationManager.NavigateTo("/signin");
+    }
+
+    public async Task SignUpAsync()
+    {
+        if (Password != ConfirmPassword)
+            ErrorMessage = "Passwords do not match";
+        else
+        {
+            var result = await _userService.SignUp(new SignUpRequest()
+            {
+                Name = Name,
+                Surname = Surname,
+                Username = Username,
+                Password = Password
+            });
+            if (result.Success)
+            {
+                _navigationManager.NavigateTo("/");
+            }
+            else
+            {
+                HasError = true;
+                ErrorMessage = result.Message;
+            }
+        }
+       
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await _browserStorageService.RemoveItem("Project2");
+    }
+
+}
+

@@ -22,6 +22,47 @@ public class UserService
         _userComponent = userComponent;
     }
 
+    public async Task<Project2Response> SignUp(SignUpRequest signUpRequest)
+    {
+        var response = new Project2Response();
+
+        try
+        {
+            var restResponse = await _userComponent.SignUp(signUpRequest);
+
+            switch (restResponse.StatusCode)
+            {
+                case HttpStatusCode.OK:
+                    var authResponse =
+                        JsonConvert.DeserializeObject<Project2Response<SignInResponse>>(restResponse.Content);
+                    if (authResponse is {Success: true})
+                    {
+                        response.Success = true;
+                        var userStateModel = new UserStateModel
+                        {
+                            UserId = authResponse.Result.Id
+                        };
+                            
+                        await _browserStorageService.SetItem("Project2", userStateModel);
+
+                    }
+                    else
+                        response.Message = authResponse.Message;
+                    break;
+                default:
+                    response.Message = "An error has occurred while trying to sign up.";
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            response.Message = "An error has occurred while trying to sign up.";
+        }
+
+        return response;
+    }
+    
+
     public async Task<Project2Response> SignIn(SignInRequest signInRequest)
     {
         var response = new Project2Response();

@@ -1,18 +1,17 @@
 ﻿@page "/counter"
-
+@using Project2UI.Models
+@using Project2UI.Services
+@inject BrowserStorageService _browserStorageService;
+@inject NavigationManager _navigationManager;
 <PageTitle>Counter</PageTitle>
 
-<h1>Counter</h1>
-
-<p role="status">Current count: @currentCount</p>
-
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
-
 @code {
-    private int currentCount = 0;
-
-    private void IncrementCount()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        currentCount++;
+        var id =  await _browserStorageService.GetItem<UserStateModel>("Project2");
+        if(string.IsNullOrWhiteSpace(id?.UserId))
+            _navigationManager.NavigateTo("/signin");
+
+        StateHasChanged();
     }
 }

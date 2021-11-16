@@ -3,12 +3,13 @@
 @using Project2UI.Services
 @inject BrowserStorageService _browserStorageService;
 @inject NavigationManager _navigationManager;
-<title>Hello</title>
+<PageTitle>Home</PageTitle>
+
 @code {
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         var id =  await _browserStorageService.GetItem<UserStateModel>("Project2");
-        if(string.IsNullOrWhiteSpace(id.UserId))
+        if(string.IsNullOrWhiteSpace(id?.UserId))
             _navigationManager.NavigateTo("/signin");
 
         StateHasChanged();

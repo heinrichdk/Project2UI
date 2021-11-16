@@ -1,0 +1,86 @@
+﻿@page "/upload"
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+@using System.IO
+
+<h1>Upload files!</h1>
+
+
+<div @ref="dropZoneElement" class="drop-zone">
+    <p>Drop a file or paste an image or select a file using the input[type=file]</p>
+    <InputFile OnChange="@OnChange" @ref="inputFile" />
+</div>
+
+<img src="@src" />
+
+<style>
+    main {
+        background: #E8E9EC;
+        min-height: 412px;
+    }
+
+    p {
+        font-size: 18px;
+    }
+
+    .drop-zone {
+        margin-top: 20px;
+        padding: 20px;
+        min-height: 100px;
+        width: 100%;
+        background: white;
+        border: 2px dashed #0087F7;
+        border-radius: 5px;
+    }
+
+        .drop-zone.hover {
+            border-style: solid;
+        }
+
+    img {
+        margin: 30px auto;
+        display: block;
+        max-height: 150px;
+    }
+</style>
+
+@code {
+    ElementReference dropZoneElement;
+    InputFile? inputFile;
+
+    IJSObjectReference? _module;
+    IJSObjectReference? _dropZoneInstance;
+
+    string? src;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./DropZone.js");
+            _dropZoneInstance = await _module.InvokeAsync<IJSObjectReference>("initializeFileDropZone", dropZoneElement, inputFile!.Element);
+        }
+    }
+
+    async Task OnChange(InputFileChangeEventArgs e)
+    {
+        using var stream = e.File.OpenReadStream();
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        src = "data:" + e.File.ContentType + ";base64," + Convert.ToBase64String(ms.ToArray());
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_dropZoneInstance != null)
+        {
+            await _dropZoneInstance.InvokeVoidAsync("dispose");
+            await _dropZoneInstance.DisposeAsync();
+        }
+
+        if (_module != null)
+        {
+            await _module.DisposeAsync();
+        }
+    }
+}

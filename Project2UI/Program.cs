@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MudBlazor.Services;
 using Project2UI;
 using Project2UI.Components;
 using Project2UI.Services;
@@ -16,7 +17,7 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddTransient<BrowserStorageService>();
 builder.Services.AddScoped<UserComponent>();
 builder.Services.AddScoped<UserService>();
-
+builder.Services.AddMudServices();
 builder.Services.AddOptions();
 builder.Services.AddAuthorizationCore();
 

@@ -1,31 +1,64 @@
-﻿
-@inject NavigationManager _navigationManager
+﻿@inject NavigationManager _navigationManager
 @inject UserService _userService
 @inject BrowserStorageService _browserStorageService
 @page "/signin"
 @using Project2UI.Models
 @using Project2UI.Services
 
-<h2><b>Login</b></h2>
-<hr>
+<title>Sign In</title>
 
-<div class="col-6">
-    <input type="text" @bind="Username" class="form-control" placeholder="username">
+
+@if (HasError)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled">@ErrorMessage</MudAlert>
+}
+
+
+<div>
+
+    <div style ="display: flex;justify-content: center;align-items: center; margin-top: 10mm" >
+        <h1 >
+            Sign In
+        </h1>
+    </div>
+    <div style ="display: flex;justify-content: center;align-items: center; margin-top: 5mm ">
+        <input  type="text" placeholder="Enter Username" @bind="Username">
+    </div >
+    <div style ="display: flex;justify-content: center;align-items: center; margin-top: 5mm ">
+        <input  type="password" placeholder="Enter Password" @onkeydown="@Enter" @bind="Password">
+    </div>
+    <div style ="display: flex;justify-content: center;align-items: center; margin-top:5mm ">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="SignInAsync">Sign in</MudButton>
+    </div>
+    <div style ="display: flex;justify-content: center;align-items: center; margin-top: 5mm ">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="SignUpAsync">Sign Up</MudButton>
+    </div>
+
+
 </div>
-<br />
-<div class="col-6">
-    <input type="password" @bind="Password" class="form-control" placeholder="password">
-</div>
-<br />
-<div class="col-6">
-    <button class="btn btn-primary" @onclick="LoginUser">Login</button>
-</div>
+
 
 @code {
     string Username { get; set; }
-    string Password{ get; set; }
+    string Password { get; set; }
+    bool HasError { get; set; }
+    string ErrorMessage { get; set; }
 
-    public async Task LoginUser()
+    public void Enter(KeyboardEventArgs e)
+    {
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+        {
+            SignInAsync();
+        }
+    }
+
+
+    public async Task SignUpAsync()
+    {
+        _navigationManager.NavigateTo("/signup");
+    }
+
+    public async Task SignInAsync()
     {
         var result = await _userService.SignIn(new SignInRequest
         {
@@ -36,15 +69,16 @@
         {
             _navigationManager.NavigateTo("/");
         }
-
+        else
+        {
+            HasError = true;
+            ErrorMessage = result.Message;
+        }
     }
-    
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var id =  await _browserStorageService.GetItem<UserStateModel>("Project2");
-        if(string.IsNullOrWhiteSpace(id.UserId))
-            _navigationManager.NavigateTo("/signin");
-
-        StateHasChanged();
+        await _browserStorageService.RemoveItem("Project2");
     }
+
 }
