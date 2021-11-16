@@ -1,14 +1,21 @@
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
-using Project2UI.Data;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Project2UI;
+using Project2UI.Components;
+using Project2UI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddSingleton<WeatherForecastService>();
-
+builder.Services.AddTransient<BrowserStorageService>();
+builder.Services.AddScoped<UserComponent>();
+builder.Services.AddScoped<UserService>();
 
 builder.Services.AddOptions();
 builder.Services.AddAuthorizationCore();

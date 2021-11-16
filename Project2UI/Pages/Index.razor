@@ -1,9 +1,16 @@
 ﻿@page "/"
+@using Project2UI.Models
+@using Project2UI.Services
+@inject BrowserStorageService _browserStorageService;
+@inject NavigationManager _navigationManager;
+<title>Hello</title>
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var id =  await _browserStorageService.GetItem<UserStateModel>("Project2");
+        if(string.IsNullOrWhiteSpace(id.UserId))
+            _navigationManager.NavigateTo("/signin");
 
-<PageTitle>Index</PageTitle>
-
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
-
-<SurveyPrompt Title="How is Blazor working for you?" />
+        StateHasChanged();
+    }
+}

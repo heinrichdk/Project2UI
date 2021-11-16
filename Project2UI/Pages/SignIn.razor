@@ -1,7 +1,10 @@
-﻿@inject IConfiguration _config
+﻿
 @inject NavigationManager _navigationManager
-@page "/singin"
+@inject UserService _userService
+@inject BrowserStorageService _browserStorageService
+@page "/signin"
 @using Project2UI.Models
+@using Project2UI.Services
 
 <h2><b>Login</b></h2>
 <hr>
@@ -24,24 +27,24 @@
 
     public async Task LoginUser()
     {
-
-        var conn = _config.GetConnectionString("ProjectApi");
-        var client = new HttpClient{BaseAddress = new Uri(conn)};
-
-        var result = await client.PostAsJsonAsync<SignInRequest>("api/user/sign-in", new SignInRequest
-         {
-             Username = this.Username,
-             Password = this.Password
-         });
-
-
-
-           await _browserStorageService.SetItem("SKM_Tacos", userStateModel);
-
-            ((CustomAuthStateProvider)authenticationStateProvider).UpdateAuthentication(true);
-
+        var result = await _userService.SignIn(new SignInRequest
+        {
+            Username = Username,
+            Password = Password
+        });
+        if (result.Success)
+        {
             _navigationManager.NavigateTo("/");
- 
+        }
 
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var id =  await _browserStorageService.GetItem<UserStateModel>("Project2");
+        if(string.IsNullOrWhiteSpace(id.UserId))
+            _navigationManager.NavigateTo("/signin");
+
+        StateHasChanged();
     }
 }

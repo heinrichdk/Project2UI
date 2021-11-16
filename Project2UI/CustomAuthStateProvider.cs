@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using Project2UI.Models;
 using System.Security.Claims;
+using Project2UI.Services;
 
 namespace Project2UI
 {
@@ -17,37 +18,45 @@ namespace Project2UI
         }
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            ClaimsIdentity identity;
-     
+            ClaimsIdentity identity = new ClaimsIdentity();
 
-            UserStateModel userState = await _browserStorageService.GetItem<UserStateModel>("Project2");
+
+            try
+            {
+                UserStateModel userState = await _browserStorageService.GetItem<UserStateModel>("Project2");
       
 
-            if (IsAuthenticating)
-            {
-                return null;
-            }
-            else if (IsAuthenticated)
-            {
-
-                List<Claim> userClaims = new List<Claim>();
-
-                userClaims.Add(new Claim(ClaimTypes.Name, userState.UserId));
-       
-
-                for (int i = 0; i < userState.claims.Count; i++)
+                if (IsAuthenticating)
+                {
+                    return null;
+                }
+                else if (IsAuthenticated)
                 {
 
-                    userClaims.Add(new Claim(ClaimTypes.Role, userState.claims[i]));
+                    List<Claim> userClaims = new List<Claim>();
+
+                    userClaims.Add(new Claim(ClaimTypes.Name, userState.UserId));
+       
+
+                    for (int i = 0; i < userState.claims.Count; i++)
+                    {
+
+                        userClaims.Add(new Claim(ClaimTypes.Role, userState.claims[i]));
+                    }
+
+                    identity = new ClaimsIdentity(userClaims, "WebApiAuth");
+                }
+                else
+                {
+                    identity = new ClaimsIdentity();
                 }
 
-                identity = new ClaimsIdentity(userClaims, "WebApiAuth");
             }
-            else
+            catch (Exception e)
             {
-                identity = new ClaimsIdentity();
+                Console.WriteLine(e);
             }
-
+           
             return await Task.FromResult(new AuthenticationState(new ClaimsPrincipal(identity)));
         }
 
