@@ -1,0 +1,47 @@
+﻿@inject IConfiguration _config
+@inject NavigationManager _navigationManager
+@page "/singin"
+@using Project2UI.Models
+
+<h2><b>Login</b></h2>
+<hr>
+
+<div class="col-6">
+    <input type="text" @bind="Username" class="form-control" placeholder="username">
+</div>
+<br />
+<div class="col-6">
+    <input type="password" @bind="Password" class="form-control" placeholder="password">
+</div>
+<br />
+<div class="col-6">
+    <button class="btn btn-primary" @onclick="LoginUser">Login</button>
+</div>
+
+@code {
+    string Username { get; set; }
+    string Password{ get; set; }
+
+    public async Task LoginUser()
+    {
+
+        var conn = _config.GetConnectionString("ProjectApi");
+        var client = new HttpClient{BaseAddress = new Uri(conn)};
+
+        var result = await client.PostAsJsonAsync<SignInRequest>("api/user/sign-in", new SignInRequest
+         {
+             Username = this.Username,
+             Password = this.Password
+         });
+
+
+
+           await _browserStorageService.SetItem("SKM_Tacos", userStateModel);
+
+            ((CustomAuthStateProvider)authenticationStateProvider).UpdateAuthentication(true);
+
+            _navigationManager.NavigateTo("/");
+ 
+
+    }
+}
