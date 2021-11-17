@@ -6,7 +6,7 @@ namespace Project2UI.Services
     public class BrowserStorageService
     {
         private readonly ProtectedLocalStorage _protectedLocalStorage;
-        public BrowserStorageService(ProtectedLocalStorage protectedLocalStorage)//, AuthenticationStateProvider authenticationStateProvider
+        public BrowserStorageService(ProtectedLocalStorage protectedLocalStorage)
         {
             _protectedLocalStorage = protectedLocalStorage;
         }

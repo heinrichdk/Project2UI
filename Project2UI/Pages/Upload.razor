@@ -2,8 +2,11 @@
 @inject IJSRuntime _jsRuntime
 @implements IAsyncDisposable
 @using System.IO
-@using Microsoft.AspNetCore.Hosting
+@inject BrowserStorageService _browserStorageService;
+@inject NavigationManager _navigationManager;
 @using Project2UI.Models
+@using Project2UI.Services
+@inject ImageService _imageService;
 
 
 @if (HasError)
@@ -90,14 +93,15 @@
 
     IJSObjectReference? _module;
     IJSObjectReference? _dropZoneInstance;
-    string? Name { get; set; }
-    string? Location { get; set; }
-    string? CapturedBy { get; set; }
-    DateTime CapturedDate { get; set; }
-    string? Tags { get; set; }
+    string Name { get; set; }
+    string Location { get; set; }
+    string CapturedBy { get; set; }
+    DateTime CapturedDate { get; set; } = DateTime.Now;
+    string Tags { get; set; }
     bool HasError { get; set; }
     bool BClearInputFile { get; set; }
     string? ErrorMessage { get; set; }
+    IBrowserFile resizedFile;
 
     readonly List<string> _allowedTypes = new List<string>
     {
@@ -119,6 +123,11 @@
             _module = await _jsRuntime.InvokeAsync<IJSObjectReference>("import", "./DropZone.js");
             _dropZoneInstance = await _module.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFile!.Element);
         }
+        var id =  await _browserStorageService.GetItem<UserStateModel>("Project2");
+        if(string.IsNullOrWhiteSpace(id?.UserId))
+            _navigationManager.NavigateTo("/signin");
+
+        StateHasChanged();
     }
 
     async Task OnChange(InputFileChangeEventArgs e)
@@ -127,10 +136,9 @@
         if (CheckAllowedFileTypes(contentType))
         {
             var imageFile = e.File;
-            var resizedImage =
+            resizedFile =
                 await imageFile.RequestImageFileAsync(contentType, 300, 300);
-            await using var stream = resizedImage.OpenReadStream();
-            ;
+            await using var stream = resizedFile.OpenReadStream();
             await using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
             _src = "data:" + e.File.ContentType + ";base64," + Convert.ToBase64String(ms.ToArray());
@@ -143,24 +151,35 @@
         }
     }
 
-    void Save()
+    async void Save()
     {
         if (string.IsNullOrWhiteSpace(Name))
         {
             HasError = true;
             ErrorMessage = "Please enter a name for the image";
+            return;
         }
 
         if (_inputFile != null)
         {
+            var id =  await _browserStorageService.GetItem<UserStateModel>("Project2");
             var request = new SaveImageRequest()
             {
+                UserId = id.UserId,
                 Name = Name,
                 CapturedDate = new DateTimeOffset(CapturedDate),
-                Location = Location,
-                Tags = Tags,
-                CapturedBy = CapturedBy
+                Location = Location??"",
+                Tags = Tags??"",
+                CapturedBy = CapturedBy??""
             };
+            var response =  await  _imageService.SaveImage(request, resizedFile);
+            if (!response.Success)
+            {
+                HasError = true;
+                ErrorMessage = response.Message;
+                return;
+            }
+            _navigationManager.NavigateTo("/");
         }
     }
 
