@@ -6,12 +6,5 @@
 <PageTitle>Counter</PageTitle>
 
 @code {
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        var id =  await _browserStorageService.GetItem<UserStateModel>("Project2");
-        if(string.IsNullOrWhiteSpace(id?.UserId))
-            _navigationManager.NavigateTo("/signin");
-
-        StateHasChanged();
-    }
+ 
 }
