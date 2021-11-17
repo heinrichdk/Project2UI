@@ -33,7 +33,7 @@
 
     return {
         dispose: () => {
-            element.removeEventListener('paste', handler);
+            element.removeEventListener('paste', pasteHandler);
             element.removeEventListener('dragenter', addDragClass);
             element.removeEventListener('dragover', addDragClass);
             element.removeEventListener('dragleave', removeDragClass);

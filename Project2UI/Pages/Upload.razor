@@ -1,17 +1,59 @@
 ﻿@page "/upload"
-@inject IJSRuntime JSRuntime
+@inject IJSRuntime _jsRuntime
 @implements IAsyncDisposable
 @using System.IO
+@using Microsoft.AspNetCore.Hosting
+@using Project2UI.Models
 
-<h1>Upload files!</h1>
+
+@if (HasError)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled">@ErrorMessage</MudAlert>
+}
 
 
-<div @ref="dropZoneElement" class="drop-zone">
-    <p>Drop a file or paste an image or select a file using the input[type=file]</p>
-    <InputFile accept=".bmp, .ico, .jpeg, .jpg, ,gif, .tiff, .png" OnChange="@OnChange" @ref="inputFile" />
+<h1 style="left: 50%;">Upload Image</h1>
+<div @ref="_dropZoneElement" class="drop-zone">
+    <p>Drop an image or paste an image or select an image using the input</p>
+    @if (!BClearInputFile)
+    {
+        <InputFile accept=".bmp, .ico, .jpeg, .jpg, ,gif, .tiff, .png" OnChange="@OnChange" @ref="_inputFile"/>
+    }
+
 </div>
 
-<img src="@src" />
+<div>
+    <img src="@_src" alt="" style="float: left; margin: 30px"/>
+    @if (!string.IsNullOrWhiteSpace(_src))
+    {
+        <div>
+            <h2>Name of Image</h2>
+            <input type="text" placeholder="Image Name" @bind="Name">
+
+            <h2>Location</h2>
+
+            <input type="text" placeholder="Location" @bind="Location">
+
+            <h2>Captured By</h2>
+
+            <input type="text" placeholder="Photographer" @bind="CapturedBy">
+
+            <h2>Captured Date</h2>
+
+            <input type="date" placeholder="Date" @bind="CapturedDate">
+
+            <h2>Tags</h2>
+            <h3>Add Image Tags seperated with commas</h3>
+
+            <input type="text" placeholder="Tags" @bind="Tags">
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="Save">Save</MudButton>
+        </div>
+    }
+
+
+</div>
+
 
 <style>
     main {
@@ -27,47 +69,99 @@
         margin-top: 20px;
         padding: 20px;
         min-height: 100px;
-        width: 100%;
+        width: 50%;
         background: white;
         border: 2px dashed #0087F7;
         border-radius: 5px;
+        display: flex;
+        left: 50%;
+        justify-content: center;
+        align-items: center;
     }
 
         .drop-zone.hover {
             border-style: solid;
         }
-
-    img {
-        margin: 30px auto;
-        display: block;
-        max-height: 150px;
-    }
 </style>
 
 @code {
-    ElementReference dropZoneElement;
-    InputFile? inputFile;
+    ElementReference _dropZoneElement;
+    InputFile? _inputFile;
 
     IJSObjectReference? _module;
     IJSObjectReference? _dropZoneInstance;
+    string? Name { get; set; }
+    string? Location { get; set; }
+    string? CapturedBy { get; set; }
+    DateTime CapturedDate { get; set; }
+    string? Tags { get; set; }
+    bool HasError { get; set; }
+    bool BClearInputFile { get; set; }
+    string? ErrorMessage { get; set; }
 
-    string? src;
+    readonly List<string> _allowedTypes = new List<string>
+    {
+        "bmp",
+        "ico",
+        "jpeg",
+        "jpg",
+        "gif",
+        "tiff",
+        "png"
+    };
+
+    string? _src;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            _module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./DropZone.js");
-            _dropZoneInstance = await _module.InvokeAsync<IJSObjectReference>("initializeFileDropZone", dropZoneElement, inputFile!.Element);
+            _module = await _jsRuntime.InvokeAsync<IJSObjectReference>("import", "./DropZone.js");
+            _dropZoneInstance = await _module.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFile!.Element);
         }
     }
 
     async Task OnChange(InputFileChangeEventArgs e)
     {
-        using var stream = e.File.OpenReadStream();
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);
-        src = "data:" + e.File.ContentType + ";base64," + Convert.ToBase64String(ms.ToArray());
+        var contentType = e.File.ContentType;
+        if (CheckAllowedFileTypes(contentType))
+        {
+            var imageFile = e.File;
+            var resizedImage =
+                await imageFile.RequestImageFileAsync(contentType, 300, 300);
+            await using var stream = resizedImage.OpenReadStream();
+            ;
+            await using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _src = "data:" + e.File.ContentType + ";base64," + Convert.ToBase64String(ms.ToArray());
+        }
+        else
+        {
+            HasError = true;
+            ErrorMessage = $"File format {contentType.Split('/')[1]} not supported please select a new file";
+            ClearInputFile();
+        }
+    }
+
+    void Save()
+    {
+        if (string.IsNullOrWhiteSpace(Name))
+        {
+            HasError = true;
+            ErrorMessage = "Please enter a name for the image";
+        }
+
+        if (_inputFile != null)
+        {
+            var request = new SaveImageRequest()
+            {
+                Name = Name,
+                CapturedDate = new DateTimeOffset(CapturedDate),
+                Location = Location,
+                Tags = Tags,
+                CapturedBy = CapturedBy
+            };
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -83,4 +177,18 @@
             await _module.DisposeAsync();
         }
     }
+
+    private bool CheckAllowedFileTypes(string contentType)
+    {
+        return _allowedTypes.Any(type => contentType.Contains(type));
+    }
+
+    private void ClearInputFile()
+    {
+        BClearInputFile = true;
+        StateHasChanged();
+        BClearInputFile = false;
+        StateHasChanged();
+    }
+
 }
