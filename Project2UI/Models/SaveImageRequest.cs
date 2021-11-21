@@ -8,5 +8,6 @@ public class SaveImageRequest
     public string CapturedBy { get; set; }
     public DateTimeOffset CapturedDate { get; set; }
     public string Tags { get; set; }
+    public  string Type { get; set; }
     
 }

@@ -170,7 +170,8 @@
                 CapturedDate = new DateTimeOffset(CapturedDate),
                 Location = Location??"",
                 Tags = Tags??"",
-                CapturedBy = CapturedBy??""
+                CapturedBy = CapturedBy??"",
+                Type = resizedFile.ContentType.Split("/")[1]
             };
             var response =  await  _imageService.SaveImage(request, resizedFile);
             if (!response.Success)

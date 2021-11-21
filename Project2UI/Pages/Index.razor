@@ -1,17 +1,153 @@
 ﻿@page "/"
 @using Project2UI.Models
 @using Project2UI.Services
+@using Microsoft.AspNetCore.Mvc
+@using System.Net
 @inject BrowserStorageService _browserStorageService;
 @inject NavigationManager _navigationManager;
+@inject ImageService _imageService;
+@inject IJSRuntime _jsRuntime
 <PageTitle>Home</PageTitle>
+@if (HasError)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled">@ErrorMessage</MudAlert>
+}
+
+@if (_userImages.Count == 0)
+{
+    <h1>No Data to display please upload an image</h1>
+}
+else
+{
+    <table>
+        <thead>
+        <tr>
+            <th>Image Name</th>
+            <th>Date Captured</th>
+            <th>Captured By</th>
+            <th>Tags</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var userImage in _userImages)
+        {
+            @if (userImage.IsUploader)
+            {
+                <tr>
+                    <td>
+                        <input type="text" @bind="userImage.Image.Name"/>
+                    </td>
+                    <td>
+                        <input type="date" @bind="userImage.Image.DateCaptured"/>
+                    </td>
+                    <td>
+                        <input type="text" @bind="userImage.Image.CapturedBy"/>
+                    </td>
+                    <td>
+                        <input type="text" @bind="userImage.Image.Tags"/>
+                    </td>
+                    <td>
+                        <MudButton @onclick="@(() => Save(userImage))" Variant="Variant.Filled" Color="Color.Success">Save</MudButton>
+                        <MudButton @onclick="@(() => Delete(userImage))" Variant="Variant.Filled" Color="Color.Error">Delete</MudButton>
+                        <MudButton @onclick="@(() => Show(userImage))" Variant="Variant.Filled" Color="Color.Primary">Show/Hide</MudButton>
+                    </td>
+                </tr>
+                if (userImage.IsExpanded)
+                {
+                    
+                    <tr>
+                        <td>
+                            <img src="@userImage.ImageSource" style="float: left; margin: 30px"/>
+                        </td>
+                        <td>
+                             <MudButton @onclick="@(() => Download(userImage))" Variant="Variant.Filled" Color="Color.Success">Download</MudButton>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td>@userImage.Image.Name</td>
+                    <td>@userImage.Image.DateCaptured</td>
+                    <td>@userImage.Image.CapturedBy</td>
+                    <td>@userImage.Image.Tags</td>
+                    <td>
+                        <MudButton @onclick="@(() => Show(userImage))" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+}
 
 @code {
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        var id =  await _browserStorageService.GetItem<UserStateModel>("Project2");
-        if(string.IsNullOrWhiteSpace(id?.UserId))
-            _navigationManager.NavigateTo("/signin");
 
+    bool HasError { get; set; }
+    string? ErrorMessage { get; set; }
+    List<UserImage> _userImages = new List<UserImage>();
+    string _userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var id = await _browserStorageService.GetItem<UserStateModel>("Project2");
+        _userId = id.UserId;
+        if (string.IsNullOrWhiteSpace(_userId))
+            _navigationManager.NavigateTo("/signin");
+        else
+        {
+            await LoadUserImages();
+        }
+    }
+
+    private void Show(UserImage userImage)
+    {
+        userImage.IsExpanded = !userImage.IsExpanded;
+    }
+
+    private async void Save(UserImage userImage)
+    {
+        var response = await _imageService.UpdateImage(userImage.Image);
+        if (!response.Success)
+        {
+            HasError = true;
+            ErrorMessage = response.Message;
+        }
+        await LoadUserImages();
+    }
+
+    private async void Delete(UserImage userImage)
+    {
+        var response = await _imageService.DeleteImage(userImage.Image);
+        if (!response.Success)
+        {
+            HasError = true;
+            ErrorMessage = response.Message;
+        }
+        await LoadUserImages();
+    }
+
+    private async Task LoadUserImages()
+    {
+        var userImageResponse = await _imageService.GetImagesByUser(_userId);
+        _userImages = userImageResponse.Result;
         StateHasChanged();
     }
+
+    
+  
+
+    private async void Download(UserImage userImage)
+    {
+     await    _imageService.DownloadImage(userImage.Image);
+
+    }
+    
+    
+
+
+ 
+
+
 }
