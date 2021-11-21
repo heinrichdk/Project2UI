@@ -52,16 +52,38 @@ else
                         <MudButton @onclick="@(() => Show(userImage))" Variant="Variant.Filled" Color="Color.Primary">Show/Hide</MudButton>
                     </td>
                 </tr>
-                if (userImage.IsExpanded)
+                @if (userImage.IsExpanded)
                 {
-                    
                     <tr>
                         <td>
                             <img src="@userImage.ImageSource" style="float: left; margin: 30px"/>
                         </td>
                         <td>
-                             <MudButton @onclick="@(() => Download(userImage))" Variant="Variant.Filled" Color="Color.Success">Download</MudButton>
+                            <a href="@userImage.ImageSource">Download</a>
                         </td>
+                    </tr>
+
+                    <tr>
+                        <h2>Shared Users</h2>
+                    </tr>
+
+                    @if (userImage?.SmallResponses != null)
+                    {
+                        foreach (var user in userImage.SmallResponses)
+                        {
+                            <tr>
+                                <td>@user.Username</td>
+
+                                <td><MudButton @onclick="@(() => UnShare(user, userImage))" Variant="Variant.Filled" Color="Color.Error">Un Share</MudButton></td>
+                            </tr>
+                        }
+                    }
+                    <tr>
+                        <td>
+                            <input type="text" @bind="@username"/>
+                        </td>
+
+                        <td><MudButton @onclick="@(() =>Share(userImage))" Variant="Variant.Filled" Color="Color.Success">Share</MudButton></td>
                     </tr>
                 }
             }
@@ -69,22 +91,37 @@ else
             {
                 <tr>
                     <td>@userImage.Image.Name</td>
-                    <td>@userImage.Image.DateCaptured</td>
+                    <td>@userImage.Image.DateCaptured.ToString("dd/mm/yyyy")</td>
                     <td>@userImage.Image.CapturedBy</td>
                     <td>@userImage.Image.Tags</td>
                     <td>
-                        <MudButton @onclick="@(() => Show(userImage))" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+                        <MudButton @onclick="@(() => Show(userImage))" Variant="Variant.Filled" Color="Color.Primary">Show.Hide</MudButton>
                     </td>
                 </tr>
+
+                if (userImage.IsExpanded)
+                {
+                    <tr>
+                        <td>
+                            <img src="@userImage.ImageSource" style="float: left; margin: 30px"/>
+                        </td>
+                        <td>
+                             <a href="@userImage.ImageSource">Download</a>
+                        </td>
+                    </tr>
+                }
             }
         }
         </tbody>
     </table>
 }
 
-@code {
+@code
+{
+    bool
+        HasError { get; set; }
 
-    bool HasError { get; set; }
+    string username { get; set; }
     string? ErrorMessage { get; set; }
     List<UserImage> _userImages = new List<UserImage>();
     string _userId;
@@ -101,9 +138,11 @@ else
         }
     }
 
-    private void Show(UserImage userImage)
+    private async void Show(UserImage userImage)
     {
+        await GetShares(userImage);
         userImage.IsExpanded = !userImage.IsExpanded;
+    
     }
 
     private async void Save(UserImage userImage)
@@ -134,20 +173,53 @@ else
         _userImages = userImageResponse.Result;
         StateHasChanged();
     }
-
     
-  
 
-    private async void Download(UserImage userImage)
+
+    private async void UnShare(UserSmallResponse user, UserImage userImage)
     {
-     await    _imageService.DownloadImage(userImage.Image);
+        var response =  await  _imageService.UnShareImage(userImage, user.Username);
+        if (!response.Success)
+        {
+            HasError = true;
+            ErrorMessage = response.Message;
+        }
+       
+        await GetShares(userImage);
+    }
+
+    private async void Share(UserImage userImage)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            HasError = true;
+            ErrorMessage = "Please enter a user name";
+            return;
+        }
+
+        var response =  await  _imageService.ShareImage(userImage, username);
+        if (!response.Success)
+        {
+            HasError = true;
+            ErrorMessage = response.Message;
+        }
+        else
+        {
+            username = "";
+            await GetShares(userImage);
+        }
+      
 
     }
-    
-    
 
-
- 
-
-
+    public async Task GetShares(UserImage userImage)
+    {
+        var response = await _imageService.GetSharedUsers(userImage.ImageId);
+        if (!response.Success)
+        {
+            HasError = true;
+            ErrorMessage = response.Message;
+        }
+        userImage.SmallResponses = response.Result;
+    }
 }

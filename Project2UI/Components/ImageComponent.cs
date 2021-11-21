@@ -144,6 +144,31 @@ public class ImageComponent
 
         return response;
     }
+    public async Task<IRestResponse<Project2Response>> ShareImage(ShareImageRequest requestModel)
+    {
+        var request = new RestRequest("image/share-image", Method.POST).AddJsonBody(requestModel);
+
+        var response = await _client.ExecuteAsync<Project2Response>(request);
+
+        return response;
+    }
+    public async Task<IRestResponse<Project2Response>> UnShareImage(ShareImageRequest requestModel)
+    {
+        var request = new RestRequest("image/un-share-image", Method.POST).AddJsonBody(requestModel);
+
+        var response = await _client.ExecuteAsync<Project2Response>(request);
+
+        return response;
+    }
+    
+    public async Task<IRestResponse<Project2Response<List<UserSmallResponse>>>> GetSharedUsers(string imageId)
+    {
+        var request = new RestRequest($"image/get-shared-users/{imageId}", Method.GET);
+
+        var response = await _client.ExecuteAsync<Project2Response<List<UserSmallResponse>>>(request);
+
+        return response;
+    }
 
 
     public async Task<IRestResponse<Project2Response<List<UserImage>>>> GetUserImageByUser(string userId)
